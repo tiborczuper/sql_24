@@ -1,0 +1,44 @@
+SET SERVEROUTPUT ON
+
+CREATE OR REPLACE FUNCTION reszlegek (menaz EMPLOYEES.MANAGER_ID%TYPE) 
+    RETURN NUMBER IS cnt NUMBER;
+    BEGIN
+        SELECT COUNT(DISTINCT DEPARTMENT_ID) INTO cnt FROM EMPLOYEES WHERE MANAGER_ID = menaz;
+        RETURN cnt;
+    END;
+
+/
+
+DECLARE
+    fname VARCHAR(200);
+    sz number;
+BEGIN
+    FOR C IN (SELECT DISTINCT MANAGER_ID FROM EMPLOYEES) LOOP
+        IF reszlegek(C.MANAGER_ID) > 4 THEN
+            SELECT FIRST_NAME||' '||LAST_NAME INTO fname FROM EMPLOYEES WHERE EMPLOYEE_ID = C.MANAGER_ID;
+            DBMS_OUTPUT.PUT_LINE(fname);
+        END IF;
+    END LOOP;
+END;
+
+/
+
+DECLARE
+    TYPE t_rec IS RECORD(jb_id VARCHAR(200), n_work NUMBER);
+    
+    recss t_rec;
+    
+    FUNCTION rekord(dep_id EMPLOYEES.DEPARTMENT_ID%TYPE) RETURN t_rec IS rec t_rec;
+    BEGIN
+        SELECT JOB_ID, cntt INTO rec.jb_id, rec.n_work FROM (SELECT JOB_ID, COUNT(*) cntt FROM EMPLOYEES
+        WHERE DEPARTMENT_ID = dep_id
+        GROUP BY JOB_ID
+        ORDER BY cntt DESC) WHERE ROWNUM = 1;
+        return rec;
+    END rekord; 
+BEGIN
+    FOR C IN (SELECT DEPARTMENT_ID FROM DEPARTMENTS WHERE DEPARTMENT_ID < 110) LOOP
+        recss := rekord(C.DEPARTMENT_ID);
+        DBMS_OUTPUT.PUT_LINE(C.DEPARTMENT_ID||' - '||recss.jb_id||': '||recss.n_work);
+    END LOOP; 
+END;
